@@ -1,6 +1,6 @@
 ﻿namespace CrispChat.HttpClients
 {
-    public class HttpClientExtensions
+    public static class HttpClientExtensions
     {
     }
 }
