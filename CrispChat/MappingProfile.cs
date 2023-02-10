@@ -1,6 +1,13 @@
-﻿namespace CrispChat
+﻿using AutoMapper;
+
+namespace CrispChat
 {
-    public class MappingProfile
+    public class MappingProfile : Profile
     {
+        public MappingProfile()
+        {
+            //CreateMap<>
+        }
     }
 }
+

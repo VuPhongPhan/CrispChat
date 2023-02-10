@@ -1,6 +1,7 @@
 ﻿namespace CrispChat.Entities
 {
-    public class Reports
+    public class Segment : EntityBase<Guid>
     {
+
     }
 }
