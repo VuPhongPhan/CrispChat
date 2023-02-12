@@ -113,36 +113,47 @@ namespace CrispChat.Services
             var conversations = await _conversationRepository.GetSyncPaging();
             foreach (var conversation in conversations)
             {
-                var message = await _crispChatHttpClient.GetMessages(conversation.SessionId);
-                if (message != null)
+                
+                try
                 {
-                    messages.AddRange(message);
+                    var message = await _crispChatHttpClient.GetMessages(conversation.SessionId);
+                    if (message != null)
+                    {
+                        messages.AddRange(message);
+                    }
+                    //var segment = await _crispChatHttpClient.GetSegments(conversation.SessionId);
+                    //if (message != null)
+                    //{
+                    //    var mes = new Message()
+                    //    {
+                    //        SessionId = conversation.SessionId,
+                    //        Data = JsonSerializer.Serialize(message)
+                    //    };
+                    //    messages.Add(mes);
+                    //}
+                    var meta = await _crispChatHttpClient.GetMetas(conversation.SessionId);
+                    if (meta != null)
+                    {
+                        metas.Add(meta);
+                    }
+                    var routing = await _crispChatHttpClient.GetRouting(conversation.SessionId);
+                    if (routing != null)
+                    {
+                        routings.Add(routing);
+                    }
+                    var update = Builders<Conversation>.Update.Set(x => x.IsSync, true);
+                    var filter = Builders<Conversation>.Filter.Eq(x => x.Id, conversation.Id);
+                    listWrites.Add(new UpdateOneModel<Conversation>(filter, update));
                 }
-                //var segment = await _crispChatHttpClient.GetSegments(conversation.SessionId);
-                //if (message != null)
-                //{
-                //    var mes = new Message()
-                //    {
-                //        SessionId = conversation.SessionId,
-                //        Data = JsonSerializer.Serialize(message)
-                //    };
-                //    messages.Add(mes);
-                //}
-                var meta = await _crispChatHttpClient.GetMetas(conversation.SessionId);
-                if (meta != null)
+                catch (Exception e)
                 {
-                    metas.Add(meta);
                 }
-                var routing = await _crispChatHttpClient.GetRouting(conversation.SessionId);
-                if (routing != null)
-                {
-                    routings.Add(routing);
-                }
-                var filter = Builders<Conversation>.Filter.Eq(x => x.Id, conversation.Id);
-                var update = Builders<Conversation>.Update.Set(x => x.IsSync, true);
-
-                listWrites.Add(new UpdateOneModel<Conversation>(filter, update));
             }
+
+            var messageBySessionIds = messages.Select(x => x.SessionId).Distinct().ToList();
+            var messageRemove = await _messageRepository.FindAll().Find(x => messageBySessionIds.Contains(x.SessionId)).ToListAsync();
+            var messageRemoveSessionId = messageRemove.Select(x => x.SessionId).Distinct().ToList();
+            messages.RemoveAll(x => messageRemoveSessionId.Contains(x.SessionId));
 
             if (messages.Count > 0) await _messageRepository.CreateManyAsync(messages);
             if (metas.Count > 0) await _metaRepository.CreateManyAsync(metas);

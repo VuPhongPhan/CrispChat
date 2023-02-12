@@ -20,7 +20,6 @@ namespace CrispChat.Extensions
 
             return services;
         }
-
         
 
         private static IServiceCollection ConfigureSettings(this IServiceCollection services, IConfiguration configuration)
