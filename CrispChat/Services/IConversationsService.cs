@@ -1,21 +1,16 @@
-﻿using CrispChat.HttpClients.HttpDtos;
-
+﻿using CrispChat.Entities;
 namespace CrispChat.Services
 {
     public interface IConversationsService
     {
-        Task<ConversationsResponse> GetConversations();
+        Task<bool> GetConversationsAsync(DateTime start, DateTime end);
 
-        Task<MessagesResponse> GetMessages(string sessionId);
+        Task<bool> GetPeoplesAsync(DateTime start, DateTime end);
 
-        Task<string> GetSegments(string sessionId);
+        Task<bool> GetVisitorsAsync();
 
-        Task<string> GetRoutingAssign(string sessionId);
+        Task<bool> GetWebsite(string websiteId);
 
-        Task<string> GetMetas(string sessionId);
-
-        Task<string> GetPeople();
-
-        Task<string> GetVisitor();
+        Task HandleSyncSession();
     }
 }

@@ -1,25 +1,33 @@
 ﻿using CrispChat.Entities;
-using Microsoft.EntityFrameworkCore.Storage;
+using MongoDB.Driver;
 
 namespace CrispChat.Infrastructures
 {
-    public interface IRepositoryBase<T, K, TContext> where T : EntityBase<K>
+    public interface IRepositoryBase<T> where T : EntityBase
     {
+        IMongoCollection<T> FindAll(ReadPreference? readPreference = null);
+
+        Task CreateAsync(T entity);
+
         void Create(T entity);
-        Task<K> CreateAsync(T entity);
-        IList<K> CreateList(IEnumerable<T> entities);
-        Task<IList<K>> CreateListAsync(IEnumerable<T> entities);
-        void Update(T entity);
+
+        Task CreateManyAsync(IEnumerable<T> entities);
+
+        void CreateMany(IEnumerable<T> entities);
+
         Task UpdateAsync(T entity);
-        void UpdateList(IEnumerable<T> entities);
-        Task UpdateListAsync(IEnumerable<T> entities);
-        void Delete(T entity);
-        Task DeleteAsync(T entity);
-        void DeleteList(IEnumerable<T> entities);
-        Task DeleteListAsync(IEnumerable<T> entities);
-        Task<int> SaveChangesAsync();
-        Task<IDbContextTransaction> BeginTransactionAsync();
-        Task EndTransactionAsync();
-        Task RollbackTransactionAsync();
+
+        void Update(T entity);
+
+        Task DeleteAsync(string id);
+
+        Task<IEnumerable<T>> FindAsync(FilterDefinition<T> filter);
+
+
+        Task BulkWriteAsync(IEnumerable<WriteModel<T>> writes);
+
+        void BulkWrite(IEnumerable<WriteModel<T>> writes);
+
+        Task<long> CountDocumentsAsync(FilterDefinition<T> filter);
     }
 }

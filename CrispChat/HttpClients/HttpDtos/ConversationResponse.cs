@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace CrispChat.HttpClients.HttpDtos
 {
-    public class VisitorResponse
+    public class ConversationResponse
     {
         [JsonPropertyName("error")]
         public bool Error { get; set; }
@@ -12,8 +12,6 @@ namespace CrispChat.HttpClients.HttpDtos
         public string Reason { get; set; }
 
         [JsonPropertyName("data")]
-        public List<Visitor> Data { get; set; }
+        public List<Conversation> Data { get; set; }
     }
-
-   
 }

@@ -1,9 +1,18 @@
-﻿namespace CrispChat.Entities
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+
+namespace CrispChat.Entities
 {
-    public class EntityBase<TKey> : IEntityBase<TKey>
+    public class EntityBase
     {
-        public TKey Id { get; set; }
-        public DateTimeOffset CreatedDate { get; set; }
-        public DateTimeOffset? ModifiedDate { get; set; }
+        [BsonId]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public virtual string Id { get; protected init; }
+
+        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+
+        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+        public DateTime? ModifiedDate { get; set; } = DateTime.UtcNow;
     }
 }

@@ -1,8 +1,11 @@
-﻿namespace CrispChat.Entities
+﻿using System.Text.Json.Serialization;
+
+namespace CrispChat.Entities
 {
-    public class Routing : EntityBase<Guid>
+    [BsonCollection("Routings")]
+    public class Routing : EntityBase
     {
-        public string SessionId { get; set; }
-        public string UserId { get; set; }
+        [JsonPropertyName("assigned")]
+        public Assigned Assigned { get; set; }
     }
 }

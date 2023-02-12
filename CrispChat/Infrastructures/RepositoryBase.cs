@@ -1,94 +1,74 @@
-﻿using CrispChat.Entities;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
+﻿using CrispChat.Configurations;
+using CrispChat.Entities;
+using MongoDB.Driver;
+using System.Linq.Expressions;
 
 namespace CrispChat.Infrastructures
 {
-    public class RepositoryBase<T, K, TContext> : RepositoryQueryBase<T, K, TContext>, IRepositoryBase<T, K, TContext>
-    where T : EntityBase<K>
-    where TContext : DbContext
+    public class RepositoryBase<T> : IRepositoryBase<T> where T : EntityBase
     {
-        private readonly TContext _dbContext;
-        private readonly IUnitOfWork<TContext> _unitOfWork;
-
-        public RepositoryBase(TContext dbContext, IUnitOfWork<TContext> unitOfWork) : base(dbContext)
+        private IMongoDatabase Database { get; }
+        public IMongoClient _client { get; }
+        public RepositoryBase(IMongoClient client, DatabaseSettings settings)
         {
-            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
-            _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+            Database = client.GetDatabase(settings.DatabaseName);
+            _client = client;
         }
+        protected virtual IMongoCollection<T> Collection => Database.GetCollection<T>(GetCollectionName());
 
+        public IMongoCollection<T> FindAll(ReadPreference? readPreference = null) => Database.WithReadPreference(readPreference ?? ReadPreference.Primary)
+            .GetCollection<T>(GetCollectionName());
 
-        public Task<IDbContextTransaction> BeginTransactionAsync() => _dbContext.Database.BeginTransactionAsync();
+        public Task CreateAsync(T entity) => Collection.InsertOneAsync(entity);
 
-        public async Task EndTransactionAsync()
+        public Task CreateManyAsync(IEnumerable<T> entities) => Collection.InsertManyAsync(entities);
+
+        public void Create(T entity) => Collection.InsertOne(entity);
+
+        public void CreateMany(IEnumerable<T> entities) => Collection.InsertMany(entities);
+
+        public Task UpdateAsync(T entity)
         {
-            await SaveChangesAsync();
-            await _dbContext.Database.CommitTransactionAsync();
-        }
+            Expression<Func<T, string>> func = f => f.Id;
+            var value = (string)entity.GetType()
+                .GetProperty(func.Body.ToString()
+                .Split(".")[1])?.GetValue(entity, null);
+            var filter = Builders<T>.Filter.Eq(func, value);
 
-        public Task RollbackTransactionAsync() => _dbContext.Database.RollbackTransactionAsync();
-
-        public void Create(T entity) => _dbContext.Set<T>().Add(entity);
-
-        public async Task<K> CreateAsync(T entity)
-        {
-            await _dbContext.Set<T>().AddAsync(entity);
-            await SaveChangesAsync();
-            return entity.Id;
-        }
-
-        public IList<K> CreateList(IEnumerable<T> entities)
-        {
-            _dbContext.Set<T>().AddRange(entities);
-            return entities.Select(x => x.Id).ToList();
-        }
-
-        public async Task<IList<K>> CreateListAsync(IEnumerable<T> entities)
-        {
-            await _dbContext.Set<T>().AddRangeAsync(entities);
-            await SaveChangesAsync();
-            return entities.Select(x => x.Id).ToList();
+            return Collection.ReplaceOneAsync(filter, entity);
         }
 
         public void Update(T entity)
         {
-            if (_dbContext.Entry(entity).State == EntityState.Unchanged) return;
+            Expression<Func<T, string>> func = f => f.Id;
+            var value = (string)entity.GetType()
+                .GetProperty(func.Body.ToString()
+                .Split(".")[1])?.GetValue(entity, null);
+            var filter = Builders<T>.Filter.Eq(func, value);
 
-            T exist = _dbContext.Set<T>().Find(entity.Id);
-            _dbContext.Entry(exist).CurrentValues.SetValues(entity);
+            Collection.ReplaceOne(filter, entity);
         }
 
-        public async Task UpdateAsync(T entity)
-        {
-            if (_dbContext.Entry(entity).State == EntityState.Unchanged) return;
+        public Task DeleteAsync(string id) => Collection.DeleteOneAsync(x => x.Id.Equals(id));
 
-            T exist = _dbContext.Set<T>().Find(entity.Id);
-            _dbContext.Entry(exist).CurrentValues.SetValues(entity);
 
-            await SaveChangesAsync();
-        }
-        public void UpdateList(IEnumerable<T> entities) => _dbContext.Set<T>().AddRange(entities);
+        private static string GetCollectionName()
+            => (typeof(T).GetCustomAttributes(typeof(BsonCollectionAttribute), true)
+                .FirstOrDefault() as BsonCollectionAttribute)?.CollectionName;
 
-        public async Task UpdateListAsync(IEnumerable<T> entities)
-        {
-            await _dbContext.Set<T>().AddRangeAsync(entities);
-            await SaveChangesAsync();
-        }
 
-        public void Delete(T entity) => _dbContext.Set<T>().Remove(entity);
+        public async Task BulkWriteAsync(IEnumerable<WriteModel<T>> writes)
+           => await Collection.BulkWriteAsync(writes);
 
-        public async Task DeleteAsync(T entity)
-        {
-            _dbContext.Set<T>().Remove(entity);
-            await SaveChangesAsync();
-        }
-        public void DeleteList(IEnumerable<T> entities) => _dbContext.Set<T>().RemoveRange(entities);
-        public async Task DeleteListAsync(IEnumerable<T> entities)
-        {
-            _dbContext.Set<T>().RemoveRange(entities);
-            await SaveChangesAsync();
-        }
+        public void BulkWrite(IEnumerable<WriteModel<T>> writes)
+           => Collection.BulkWrite(writes);
 
-        public Task<int> SaveChangesAsync() => _unitOfWork.CommitAsync();
+        public async Task<long> CountDocumentsAsync(FilterDefinition<T> filter)
+           => await Collection.CountDocumentsAsync(filter);
+
+        public async Task<IEnumerable<T>> FindAsync(FilterDefinition<T> filter)
+           => await Collection.Find(filter).ToListAsync();
+
+        
     }
 }

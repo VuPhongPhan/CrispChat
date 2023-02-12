@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using CrispChat.Entities;
+using System.Text.Json.Serialization;
 
 namespace CrispChat.HttpClients.HttpDtos
 {
@@ -11,12 +12,6 @@ namespace CrispChat.HttpClients.HttpDtos
         public string Reason { get; set; }
 
         [JsonPropertyName("data")]
-        public DataRouting Data { get; set; }
-    }
-
-    public partial class DataRouting
-    {
-        [JsonPropertyName("assigned")]
-        public Assigned Assigned { get; set; }
+        public Routing Data { get; set; }
     }
 }

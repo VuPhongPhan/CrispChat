@@ -1,6 +1,7 @@
 ﻿namespace CrispChat.Entities
 {
-    public class Segment : EntityBase<Guid>
+    [BsonCollection("Segments")]
+    public class Segment : EntityBase
     {
 
     }
